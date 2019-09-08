@@ -26,9 +26,11 @@ files = dir([location '\*.mat']);
 afeats = [];
 alabs = [];
 ascores = []; % stored as [expert1 score, expert2 score, expert3 score]
+medfeats = [];
 
 %initialize cluster labels and ids
 clustids = []; % stored as [patient, cluster index, datapoint index, cluster sample size, label]
+med_nr = 1;
 
 for n = setdiff(1:length(files),[17 50 87]) % leave out #17, #50 and #87 as they are missing iMedoid for at least 1cluster
 
@@ -69,16 +71,18 @@ for n = setdiff(1:length(files),[17 50 87]) % leave out #17, #50 and #87 as they
         
         % stored as [patient, cluster index, datapoint index, cluster sample size, label]
         % label_1, label_2 and label_3 added
-        idclust = [n,i,iMedoids(i),lc,lb,scr];
+        idclust = [n,i,iMedoids(i),lc,lb,scr,med_nr];
         clustids = [clustids; idclust];
         
         alabs = [alabs,lb*ones(1,lc)]; % manually add label to all cluster samples
         ascores = [ascores;ones(lc,1)*scr];
-        
+        med_nr = med_nr+1;
     end
     
     features = featureArray(samp_idx,:);
     afeats = [afeats;features];
+    medfeatures = featureArray(iMedoids,:);
+    medfeats = [medfeats;medfeatures];
     
 %     [labels_maj,freq] = mode(scores_mrg(samp_idx,:)');
 %     labels_maj(freq==1) = NaN; % if none agree, leave it out
@@ -156,17 +160,17 @@ for i = 1:c.NumTestSets
 %             lbtest = [lbtest; lb(dataind:dataind+lc-1,:)];
 %             asteidx = [asteidx; ones(lc,1)]; % exclude from test score index
 %             tefeats = featureArray(clustids(j,3),:); % take only medoid 
-%             
-%             test_stnd = (tefeats-mu)./sigma; % standardize data
-%             pc_test = (test_stnd - repmat(mean(test_stnd),[size(test_stand,1),1]))*coeff;
-%             pc_test = pc_test(:,1:d);
-%             pctest = [pctest;pc_test];
-%             lbtest = [lbtest;clustids(j,5)];
+             tefeats = medfeats(clustids(j,end),:);
+             test_stnd = (tefeats-mu)./sigma; % standardize data
+             pc_test = (test_stnd - repmat(mean(test_stnd),[size(test_stand,1),1]))*coeff;
+             pc_test = pc_test(:,1:d);
+             pctest = [pctest;pc_test];
+             lbtest = [lbtest;clustids(j,5)];
 
             %dataind stores correct index / debugged index error / no need
             %to standardize the data again -SE Sep 6, 2019
-            pctest = [pctest; pc(dataind,:)]; % Only add the PCs for the medoids
-            lbtest = [lbtest;lb(dataind)]; % Only add the label for the medoids
+%            pctest = [pctest; pc(dataind,:)]; % Only add the PCs for the medoids
+%            lbtest = [lbtest;lb(dataind)]; % Only add the label for the medoids
             
             
         elseif tridx(j) == 1
